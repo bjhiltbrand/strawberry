@@ -576,7 +576,7 @@ jobs:
           fetch-depth: 0
       - name: Show release assets
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
         run: gh release view "${{github.event.release.tag_name}}" --json assets | jq -r '.assets[].name'
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -584,7 +584,7 @@ jobs:
           path: artifacts
       - name: Add artifacts to release
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
         run: |
           echo "Release version: ${{github.event.release.tag_name}}"
           filenames=()
