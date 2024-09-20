@@ -171,31 +171,11 @@ jobs:
         working-directory: build
         run: makensis strawberry.nsi
 
-      - name: Set Upload path
-        id: set-upload-path
-        if: github.repository == 'bjhiltbrand/strawberry' && (github.event_name == 'release' || (github.event_name == 'push' && github.event.pull_request.head.repo.fork == false && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/ci' || github.ref == 'refs/heads/windows')))
-        run: |
-          if [ "${{github.event_name}}" = "release" ]; then
-            echo "upload_path=${{secrets.DOWNLOADS_PATH}}/stable_releases/windows/mingw" >> $GITHUB_OUTPUT
-          else
-            echo "upload_path=${{secrets.DOWNLOADS_PATH}}/development_releases/windows/mingw" >> $GITHUB_OUTPUT
-          fi
-
-      - name: SSH Setup
-        if: steps.set-upload-path.outputs.upload_path != ''
-        uses: shimataro/ssh-key-action@v2
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          known_hosts: ${{secrets.SSH_KNOWN_HOSTS}}
-          key: ${{ secrets.SSH_KEY }}
-
-      - name: Create server path
-        if: steps.set-upload-path.outputs.upload_path != ''
-        run: ssh -p ${{secrets.SSH_PORT}} -o StrictHostKeyChecking=no ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}} mkdir -p ${{steps.set-upload-path.outputs.upload_path}}
-
-      - name: rsync
-        if: steps.set-upload-path.outputs.upload_path != ''
-        run: rsync -e "ssh -p ${{secrets.SSH_PORT}} -o StrictHostKeyChecking=no" -var build/StrawberrySetup*.exe ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}}:${{steps.set-upload-path.outputs.upload_path}}/
-
+          name: windows-mingw-${{matrix.arch}}-${{matrix.buildtype}}
+          path: build/StrawberrySetup*.exe
 
   build-windows-msvc:
     name: Build Windows MSVC
@@ -483,80 +463,11 @@ jobs:
         working-directory: build
         run: makensis strawberry.nsi
 
-      - name: Set Upload path
-        id: set-upload-path
-        shell: bash
-        if: github.repository == 'bjhiltbrand/strawberry' && (github.event_name == 'release' || (github.event_name == 'push' && github.event.pull_request.head.repo.fork == false && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/ci' || github.ref == 'refs/heads/windows')))
-        run: |
-          if [ "${{github.event_name}}" = "release" ]; then
-            echo "upload_path=${{secrets.DOWNLOADS_PATH}}/stable_releases/windows/msvc" >> $GITHUB_OUTPUT
-          else
-            echo "upload_path=${{secrets.DOWNLOADS_PATH}}/development_releases/windows/msvc" >> $GITHUB_OUTPUT
-          fi
-
-      - name: SSH Setup
-        if: steps.set-upload-path.outputs.upload_path != ''
-        shell: bash
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{secrets.SSH_KNOWN_HOSTS}}" > ~/.ssh/known_hosts
-          echo "${{secrets.SSH_KEY}}" > ~/.ssh/id_rsa
-
-      - name: Create server path
-        if: steps.set-upload-path.outputs.upload_path != ''
-        shell: bash
-        run: ssh -p ${{secrets.SSH_PORT}} -o StrictHostKeyChecking=no ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}} mkdir -p ${{steps.set-upload-path.outputs.upload_path}}
-
-      - name: rsync
-        if: steps.set-upload-path.outputs.upload_path != ''
-        shell: bash
-        run: rsync -e "/c/ProgramData/chocolatey/lib/rsync/tools/bin/ssh.exe -p ${{secrets.SSH_PORT}} -o StrictHostKeyChecking=no" -var build/StrawberrySetup*.exe ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}}:${{steps.set-upload-path.outputs.upload_path}}/
-
-
-  upload:
-    name: Upload
-    if: (success() || failure()) && github.repository == 'bjhiltbrand/strawberry' && (github.event_name == 'release' || (github.event_name == 'push' && github.event.pull_request.head.repo.fork == false && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/ci')))
-    runs-on: ubuntu-latest
-    needs:
-      - build-windows-mingw
-      - build-windows-msvc
-    steps:
-      - name: Install packages
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: sudo apt install -y git rsync
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          fetch-depth: 0
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: SSH Setup
-        uses: shimataro/ssh-key-action@v2
-        with:
-          known_hosts: ${{secrets.SSH_KNOWN_HOSTS}}
-          key: ${{secrets.SSH_KEY}}
-      - name: Upload
-        run: |
-          for i in $(find artifacts -type f); do
-            if [ "${{github.event_name}}" = "release" ]; then
-              upload_path="${{secrets.RELEASES_PATH}}/"
-            else
-              distro=$(echo "$i" | cut -d '/' -f 2)
-              if [ "$(echo "$i" | grep '-' || true)" = "" ]; then
-                upload_path="${{secrets.BUILDS_PATH}}/${distro}/"
-              else
-                distro_name=$(echo "${distro}" | cut -d '-' -f 1)
-                distro_version=$(echo "${distro}" | cut -d '-' -f 2)
-                upload_path="${{secrets.BUILDS_PATH}}/${distro_name}/${distro_version}/"
-              fi
-            fi
-            ssh -p ${{secrets.SSH_PORT}} -o StrictHostKeyChecking=no ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}} mkdir -p ${upload_path}
-            rsync -e "ssh -p ${{secrets.SSH_PORT}} -o StrictHostKeyChecking=no" -var $i ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}}:${upload_path}/
-          done
-
+          name: windows-msvc-${{matrix.arch}}-${{matrix.buildtype}}
+          path: build/StrawberrySetup*.exe
 
   attach:
     name: Attach to release
