@@ -10,7 +10,7 @@ jobs:
 
   build-windows-mingw:
     name: Build Windows MinGW
-	if: (github.event_name == 'push' && github.repository == 'bjhiltbrand/strawberry-private' && github.ref_name != 'l10n_master') ||
+    if: (github.event_name == 'push' && github.repository == 'bjhiltbrand/strawberry-private' && github.ref_name != 'l10n_master') ||
         (github.event_name == 'pull_request' && github.head_ref != 'l10n_master') ||
         (github.event_name == 'release')
     runs-on: ubuntu-latest
@@ -177,4 +177,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-mingw-${{matrix.arch}}-${{matrix.buildtype}}
-          path: build/StrawberrySetup*.exe 	
+          path: build/StrawberrySetup*.exe
