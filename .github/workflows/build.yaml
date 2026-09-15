@@ -46,8 +46,6 @@ jobs:
         env:
           PKG_CONFIG_PATH: /strawberry-mxe/usr/${{matrix.arch}}-w64-mingw32.shared/lib/pkgconfig
         run: >
-			   
-			  
           cmake -S . -B build
           -DCMAKE_SYSTEM_NAME="Windows"
           -DCMAKE_BUILD_TYPE="${{env.cmake_buildtype}}"
@@ -59,8 +57,7 @@ jobs:
           -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
           -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER
           -DCMAKE_PREFIX_PATH="/strawberry-mxe/usr/${{matrix.arch}}-w64-mingw32.shared/qt6"
-          -DBUILD_WERROR=ON
-								   
+          -DBUILD_WERROR=ON		   
           -DENABLE_WIN32_CONSOLE=$(test "${{matrix.buildtype}}" = "debug" && echo "ON" || echo "OFF")
           -DENABLE_GIO=OFF
           -DENABLE_AUDIOCD=OFF
